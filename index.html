@@ -125,26 +125,49 @@
       background: #2196F3;
       color: white;
     }
+    /* Sound Controls */
+    .soundControls {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    .soundBtn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid white;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
   <!-- Background Image -->
   <img id="backgroundImage" src="rialo2.png" alt="Background">
 
+  <!-- Sound Controls -->
+  <div class="soundControls">
+    <button class="soundBtn" onclick="toggleMusic()">🎵 Music</button>
+    <button class="soundBtn" onclick="toggleSFX()">🔊 SFX</button>
+  </div>
+
   <!-- Main Menu -->
   <div class="menu" id="mainMenu">
     <h1>RIALO PONG CLASSIC</h1>
-    <button class="play" onclick="showLevelMenu()">Play</button>
-    <button class="exit" onclick="exitGame()">Exit</button>
+    <button class="play" onclick="playButtonSound(); showLevelMenu();">Play</button>
+    <button class="exit" onclick="playButtonSound(); exitGame();">Exit</button>
   </div>
 
   <!-- Level Menu -->
   <div class="levelMenu" id="levelMenu" style="display:none;">
     <h2>Select Level</h2>
-    <button class="easy" onclick="startGame('easy')">Easy</button>
-    <button class="medium" onclick="startGame('medium')">Medium</button>
-    <button class="hard" onclick="startGame('hard')">Hard</button>
-    <button class="back" onclick="backToMenu()">Back</button>
+    <button class="easy" onclick="playButtonSound(); startGame('easy')">Easy</button>
+    <button class="medium" onclick="playButtonSound(); startGame('medium')">Medium</button>
+    <button class="hard" onclick="playButtonSound(); startGame('hard')">Hard</button>
+    <button class="back" onclick="playButtonSound(); backToMenu()">Back</button>
   </div>
 
   <!-- Scoreboard -->
@@ -158,14 +181,14 @@
 
   <!-- Game -->
   <canvas id="pong" width="800" height="500"></canvas>
-  <button id="exitGameBtn" onclick="backToMenu()">Exit Game</button>
+  <button id="exitGameBtn" onclick="playButtonSound(); backToMenu()">Exit Game</button>
 
   <!-- Win Notification -->
   <div class="winNotification" id="winNotification">
     <div class="winTitle" id="winTitle">YOU WIN! 🎉</div>
     <div class="winButtons">
-      <button class="restartBtn" onclick="restartGame()">Restart</button>
-      <button class="menuBtn" onclick="backToMenuFromWin()">Main Menu</button>
+      <button class="restartBtn" onclick="playButtonSound(); restartGame()">Restart</button>
+      <button class="menuBtn" onclick="playButtonSound(); backToMenuFromWin()">Main Menu</button>
     </div>
   </div>
 
@@ -191,6 +214,10 @@
     const paddleWidth = 10, paddleHeight = 100;
     const aiSpeeds = { easy: 3, medium: 5, hard: 8 };
 
+    // Sound Settings
+    let musicEnabled = true;
+    let sfxEnabled = true;
+
     // Background Images
     const menuBgImage = new Image();
     menuBgImage.src = 'rialo2.png';
@@ -203,6 +230,138 @@
     let ballRotation = 0;
     let ballGlow = 0;
     let trailPoints = [];
+
+    // Audio Elements
+    const backgroundMusic = new Audio();
+    backgroundMusic.src = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAABAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAABQTEFNRTMuMTAwBKkAAAAAAAAAADUgJAO8QQAAAYCAAnEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//tQxAAAAAAAAAAAAAAAAAAAAAAAASAAAAAAAASIf///9///////////////////////////////////////////8pMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq';
+    backgroundMusic.loop = true;
+    backgroundMusic.volume = 0.3;
+
+    // Sound Effects (Web Audio API)
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playButtonSound() {
+      if (!sfxEnabled) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    }
+
+    function playPaddleHit() {
+      if (!sfxEnabled) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+      oscillator.type = 'square';
+      
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    }
+
+    function playWallHit() {
+      if (!sfxEnabled) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.15);
+    }
+
+    function playScore() {
+      if (!sfxEnabled) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.3);
+      oscillator.type = 'sawtooth';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    }
+
+    function playWinSound() {
+      if (!sfxEnabled) return;
+      
+      // Play a victory sound
+      for(let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.setValueAtTime(400 + (i * 200), audioContext.currentTime);
+          oscillator.type = 'sine';
+          
+          gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+          
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.2);
+        }, i * 150);
+      }
+    }
+
+    function toggleMusic() {
+      musicEnabled = !musicEnabled;
+      const btn = event.target;
+      
+      if (musicEnabled) {
+        btn.textContent = "🎵 Music";
+        backgroundMusic.play().catch(e => console.log("Audio play failed:", e));
+      } else {
+        btn.textContent = "🔇 Music";
+        backgroundMusic.pause();
+      }
+      playButtonSound();
+    }
+
+    function toggleSFX() {
+      sfxEnabled = !sfxEnabled;
+      const btn = event.target;
+      btn.textContent = sfxEnabled ? "🔊 SFX" : "🔇 SFX";
+      playButtonSound();
+    }
 
     // Set background untuk menu utama
     menuBgImage.onload = function() {
@@ -238,6 +397,13 @@
       winNotification.style.display = "none";
       backgroundImage.src = 'rialo2.png';
       backgroundImage.style.display = "block";
+      
+      // Stop game music, play menu music
+      backgroundMusic.pause();
+      if (musicEnabled) {
+        backgroundMusic.currentTime = 0;
+        backgroundMusic.play().catch(e => console.log("Audio play failed:", e));
+      }
     }
 
     function backToMenuFromWin() {
@@ -246,7 +412,10 @@
     }
 
     function exitGame() {
-      alert("Keluar dari game. Bye!");
+      playButtonSound();
+      setTimeout(() => {
+        alert("Keluar dari game. Bye!");
+      }, 300);
     }
 
     // === GAME SETUP ===
@@ -265,6 +434,7 @@
       if (winner === 'player') {
         winTitle.textContent = "YOU WIN! 🎉";
         winTitle.style.color = "gold";
+        playWinSound();
       } else {
         winTitle.textContent = "CPU WINS! 🤖";
         winTitle.style.color = "#f44336";
@@ -326,6 +496,12 @@
       trailPoints = [];
 
       gameRunning = true;
+      
+      // Start game music
+      if (musicEnabled) {
+        backgroundMusic.currentTime = 0;
+        backgroundMusic.play().catch(e => console.log("Audio play failed:", e));
+      }
     }
 
     // === CONTROL PLAYER ===
@@ -341,13 +517,22 @@
     function update() {
       if (!gameRunning) return;
 
+      let prevX = ball.x;
+      let prevY = ball.y;
+
       ball.x += ball.dx;
       ball.y += ball.dy;
 
+      // Wall collision sound
+      if ((ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) && 
+          (prevY + ball.radius <= canvas.height && prevY - ball.radius >= 0)) {
+        playWallHit();
+      }
+
       // Update ball effects
-      ballScale = 1 + Math.sin(Date.now() * 0.01) * 0.1; // Pulsating effect
-      ballRotation += Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * 0.1; // Rotation based on speed
-      ballGlow = Math.sin(Date.now() * 0.02) * 0.3 + 0.7; // Glow effect
+      ballScale = 1 + Math.sin(Date.now() * 0.01) * 0.1;
+      ballRotation += Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * 0.1;
+      ballGlow = Math.sin(Date.now() * 0.02) * 0.3 + 0.7;
 
       // Add trail points
       trailPoints.unshift({x: ball.x, y: ball.y, alpha: 1});
@@ -379,22 +564,23 @@
           ball.y < leftPaddle.y + leftPaddle.height) {
         ball.dx *= -1;
         ball.x = leftPaddle.x + leftPaddle.width + ball.radius;
-        // Boost effect saat kena paddle
         ballScale = 1.3;
+        playPaddleHit();
       }
       if (ball.x + ball.radius > rightPaddle.x &&
           ball.y > rightPaddle.y &&
           ball.y < rightPaddle.y + rightPaddle.height) {
         ball.dx *= -1;
         ball.x = rightPaddle.x - ball.radius;
-        // Boost effect saat kena paddle
         ballScale = 1.3;
+        playPaddleHit();
       }
 
       // Score
       if (ball.x - ball.radius < 0) {
         rightScore++;
         rightScoreBox.textContent = rightScore;
+        playScore();
         if (!checkWinner()) {
           ball = createBall(1);
           trailPoints = [];
@@ -403,6 +589,7 @@
       if (ball.x + ball.radius > canvas.width) {
         leftScore++;
         leftScoreBox.textContent = leftScore;
+        playScore();
         if (!checkWinner()) {
           ball = createBall(-1);
           trailPoints = [];
@@ -475,6 +662,13 @@
     window.onload = function() {
       backgroundImage.src = 'rialo2.png';
       backgroundImage.style.display = "block";
+      
+      // Auto-resume audio context on user interaction
+      document.addEventListener('click', () => {
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+      });
     }
     
     gameLoop();
