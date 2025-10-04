@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rialo Pong Classic</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      color: white;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    #scoreboard {
+      display: none;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .scoreContainer {
+      display: flex;
+      gap: 50px;
+      margin-bottom: 10px;
+    }
+    .scoreBox {
+      background: rgba(34, 34, 34, 0.8);
+      padding: 10px 30px;
+      border: 2px solid white;
+      border-radius: 10px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .winPoint {
+      font-size: 14px;
+      color: #4CAF50;
+      margin-top: 5px;
+    }
+    canvas {
+      background: #111;
+      display: none;
+      border: 2px solid white;
+    }
+    .menu, .levelMenu {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 30px;
+      border-radius: 15px;
+      border: 2px solid white;
+    }
+    button {
+      padding: 10px 25px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    .play { background: #2196F3; color: white; }
+    .exit { background: #f44336; color: white; }
+    .easy { background: #4CAF50; color: white; }
+    .medium { background: #2196F3; color: white; }
+    .hard { background: #f44336; color: white; }
+    .back { background: gray; color: white; }
+    #exitGameBtn {
+      display: none;
+      margin-top: 10px;
+      background: #f44336;
+      color: white;
+      padding: 8px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #backgroundImage {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      object-fit: cover;
+    }
+    /* Win Notification */
+    .winNotification {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      padding: 40px;
+      border-radius: 20px;
+      border: 3px solid gold;
+      text-align: center;
+      z-index: 1000;
+      box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+    }
+    .winTitle {
+      font-size: 48px;
+      color: gold;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    }
+    .winButtons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .restartBtn {
+      background: #4CAF50;
+      color: white;
+    }
+    .menuBtn {
+      background: #2196F3;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Image -->
+  <img id="backgroundImage" src="rialo2.png" alt="Background">
+
+  <!-- Main Menu -->
+  <div class="menu" id="mainMenu">
+    <h1>RIALO PONG CLASSIC</h1>
+    <button class="play" onclick="showLevelMenu()">Play</button>
+    <button class="exit" onclick="exitGame()">Exit</button>
+  </div>
+
+  <!-- Level Menu -->
+  <div class="levelMenu" id="levelMenu" style="display:none;">
+    <h2>Select Level</h2>
+    <button class="easy" onclick="startGame('easy')">Easy</button>
+    <button class="medium" onclick="startGame('medium')">Medium</button>
+    <button class="hard" onclick="startGame('hard')">Hard</button>
+    <button class="back" onclick="backToMenu()">Back</button>
+  </div>
+
+  <!-- Scoreboard -->
+  <div id="scoreboard">
+    <div class="scoreContainer">
+      <div class="scoreBox">Player: <span id="leftScore">0</span></div>
+      <div class="scoreBox">CPU: <span id="rightScore">0</span></div>
+    </div>
+    <div class="winPoint">First to 2 points wins!</div>
+  </div>
+
+  <!-- Game -->
+  <canvas id="pong" width="800" height="500"></canvas>
+  <button id="exitGameBtn" onclick="backToMenu()">Exit Game</button>
+
+  <!-- Win Notification -->
+  <div class="winNotification" id="winNotification">
+    <div class="winTitle" id="winTitle">YOU WIN! 🎉</div>
+    <div class="winButtons">
+      <button class="restartBtn" onclick="restartGame()">Restart</button>
+      <button class="menuBtn" onclick="backToMenuFromWin()">Main Menu</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("pong");
+    const ctx = canvas.getContext("2d");
+    const mainMenu = document.getElementById("mainMenu");
+    const levelMenu = document.getElementById("levelMenu");
+    const exitBtn = document.getElementById("exitGameBtn");
+    const scoreboard = document.getElementById("scoreboard");
+    const leftScoreBox = document.getElementById("leftScore");
+    const rightScoreBox = document.getElementById("rightScore");
+    const winPointText = document.querySelector('.winPoint');
+    const backgroundImage = document.getElementById('backgroundImage');
+    const winNotification = document.getElementById('winNotification');
+    const winTitle = document.getElementById('winTitle');
+
+    let ball, leftPaddle, rightPaddle, leftScore, rightScore;
+    let aiLevel = "medium";
+    let gameRunning = false;
+    const WINNING_SCORE = 2;
+
+    const paddleWidth = 10, paddleHeight = 100;
+    const aiSpeeds = { easy: 3, medium: 5, hard: 8 };
+
+    // Background Images
+    const menuBgImage = new Image();
+    menuBgImage.src = 'rialo2.png';
+    
+    const gameBgImage = new Image();
+    gameBgImage.src = 'rialo.jpeg';
+
+    // Ball effects variables
+    let ballScale = 1;
+    let ballRotation = 0;
+    let ballGlow = 0;
+    let trailPoints = [];
+
+    // Set background untuk menu utama
+    menuBgImage.onload = function() {
+      backgroundImage.src = 'rialo2.png';
+      backgroundImage.style.display = "block";
+    }
+
+    // Fallback jika gambar gagal load
+    menuBgImage.onerror = function() {
+      console.log("Gagal load menu background");
+      document.body.style.background = "linear-gradient(135deg, #1a1a2e, #16213e)";
+    }
+
+    gameBgImage.onerror = function() {
+      console.log("Gagal load game background");
+    }
+
+    // === MENU HANDLER ===
+    function showLevelMenu() {
+      mainMenu.style.display = "none";
+      levelMenu.style.display = "flex";
+      backgroundImage.src = 'rialo2.png';
+      backgroundImage.style.display = "block";
+    }
+
+    function backToMenu() {
+      gameRunning = false;
+      canvas.style.display = "none";
+      scoreboard.style.display = "none";
+      exitBtn.style.display = "none";
+      levelMenu.style.display = "none";
+      mainMenu.style.display = "flex";
+      winNotification.style.display = "none";
+      backgroundImage.src = 'rialo2.png';
+      backgroundImage.style.display = "block";
+    }
+
+    function backToMenuFromWin() {
+      winNotification.style.display = "none";
+      backToMenu();
+    }
+
+    function exitGame() {
+      alert("Keluar dari game. Bye!");
+    }
+
+    // === GAME SETUP ===
+    function createBall(dir = 1) {
+      return {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        radius: 12,
+        dx: 5 * dir,
+        dy: 5 * (Math.random() > 0.5 ? 1 : -1)
+      };
+    }
+
+    function showWinNotification(winner) {
+      gameRunning = false;
+      if (winner === 'player') {
+        winTitle.textContent = "YOU WIN! 🎉";
+        winTitle.style.color = "gold";
+      } else {
+        winTitle.textContent = "CPU WINS! 🤖";
+        winTitle.style.color = "#f44336";
+      }
+      winNotification.style.display = "block";
+    }
+
+    function checkWinner() {
+      if (leftScore >= WINNING_SCORE) {
+        winPointText.textContent = "Player Wins! 🎉";
+        setTimeout(() => {
+          showWinNotification('player');
+        }, 500);
+        return true;
+      }
+      if (rightScore >= WINNING_SCORE) {
+        winPointText.textContent = "CPU Wins! 🤖";
+        setTimeout(() => {
+          showWinNotification('cpu');
+        }, 500);
+        return true;
+      }
+      return false;
+    }
+
+    function restartGame() {
+      winNotification.style.display = "none";
+      startGame(aiLevel);
+    }
+
+    function resetGame() {
+      backToMenu();
+    }
+
+    function startGame(level) {
+      aiLevel = level;
+      levelMenu.style.display = "none";
+      canvas.style.display = "block";
+      scoreboard.style.display = "block";
+      exitBtn.style.display = "inline-block";
+      winNotification.style.display = "none";
+      
+      backgroundImage.style.display = "none";
+
+      leftScore = 0;
+      rightScore = 0;
+      leftScoreBox.textContent = leftScore;
+      rightScoreBox.textContent = rightScore;
+      winPointText.textContent = `First to ${WINNING_SCORE} points wins!`;
+
+      ball = createBall();
+      leftPaddle = { x: 0, y: canvas.height / 2 - 50, width: paddleWidth, height: paddleHeight, dy: 0 };
+      rightPaddle = { x: canvas.width - paddleWidth, y: canvas.height / 2 - 50, width: paddleWidth, height: paddleHeight };
+
+      // Reset effects
+      ballScale = 1;
+      ballRotation = 0;
+      ballGlow = 0;
+      trailPoints = [];
+
+      gameRunning = true;
+    }
+
+    // === CONTROL PLAYER ===
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "w") leftPaddle.dy = -7;
+      if (e.key === "s") leftPaddle.dy = 7;
+    });
+    document.addEventListener("keyup", (e) => {
+      if (e.key === "w" || e.key === "s") leftPaddle.dy = 0;
+    });
+
+    // === UPDATE LOGIC ===
+    function update() {
+      if (!gameRunning) return;
+
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      // Update ball effects
+      ballScale = 1 + Math.sin(Date.now() * 0.01) * 0.1; // Pulsating effect
+      ballRotation += Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) * 0.1; // Rotation based on speed
+      ballGlow = Math.sin(Date.now() * 0.02) * 0.3 + 0.7; // Glow effect
+
+      // Add trail points
+      trailPoints.unshift({x: ball.x, y: ball.y, alpha: 1});
+      if (trailPoints.length > 8) {
+        trailPoints.pop();
+      }
+
+      // Update trail alpha
+      trailPoints.forEach((point, index) => {
+        point.alpha = 1 - (index / trailPoints.length);
+      });
+
+      if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+        ball.dy *= -1;
+      }
+
+      leftPaddle.y += leftPaddle.dy;
+      leftPaddle.y = Math.max(0, Math.min(canvas.height - paddleHeight, leftPaddle.y));
+
+      let targetY = ball.y - rightPaddle.height / 2;
+      let aiSpeed = aiSpeeds[aiLevel];
+      if (rightPaddle.y < targetY) rightPaddle.y += aiSpeed;
+      if (rightPaddle.y > targetY) rightPaddle.y -= aiSpeed;
+      rightPaddle.y = Math.max(0, Math.min(canvas.height - paddleHeight, rightPaddle.y));
+
+      // Paddle collision dengan efek
+      if (ball.x - ball.radius < leftPaddle.x + leftPaddle.width &&
+          ball.y > leftPaddle.y &&
+          ball.y < leftPaddle.y + leftPaddle.height) {
+        ball.dx *= -1;
+        ball.x = leftPaddle.x + leftPaddle.width + ball.radius;
+        // Boost effect saat kena paddle
+        ballScale = 1.3;
+      }
+      if (ball.x + ball.radius > rightPaddle.x &&
+          ball.y > rightPaddle.y &&
+          ball.y < rightPaddle.y + rightPaddle.height) {
+        ball.dx *= -1;
+        ball.x = rightPaddle.x - ball.radius;
+        // Boost effect saat kena paddle
+        ballScale = 1.3;
+      }
+
+      // Score
+      if (ball.x - ball.radius < 0) {
+        rightScore++;
+        rightScoreBox.textContent = rightScore;
+        if (!checkWinner()) {
+          ball = createBall(1);
+          trailPoints = [];
+        }
+      }
+      if (ball.x + ball.radius > canvas.width) {
+        leftScore++;
+        leftScoreBox.textContent = leftScore;
+        if (!checkWinner()) {
+          ball = createBall(-1);
+          trailPoints = [];
+        }
+      }
+    }
+
+    // === RENDER GAME ===
+    function render() {
+      if (!gameRunning) return;
+
+      // Draw background image untuk game atau fallback
+      if (gameBgImage.complete && gameBgImage.naturalWidth > 0) {
+        ctx.drawImage(gameBgImage, 0, 0, canvas.width, canvas.height);
+      } else {
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, "#1a1a2e");
+        gradient.addColorStop(1, "#16213e");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Net - WARNA BIRU
+      ctx.fillStyle = "#2196F3";
+      for (let i = 0; i <= canvas.height; i += 15) {
+        ctx.fillRect(canvas.width/2 - 1, i, 2, 10);
+      }
+
+      // Paddles - warna biru
+      ctx.fillStyle = "#2196F3";
+      ctx.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+      ctx.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+
+      // Draw trail effect
+      trailPoints.forEach((point, index) => {
+        ctx.save();
+        ctx.globalAlpha = point.alpha * 0.3;
+        ctx.font = `${20 * (1 - index/trailPoints.length * 0.5)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🔴', point.x, point.y);
+        ctx.restore();
+      });
+
+      // Draw main ball dengan efek
+      ctx.save();
+      ctx.translate(ball.x, ball.y);
+      ctx.rotate(ballRotation);
+      ctx.scale(ballScale, ballScale);
+      
+      // Glow effect
+      ctx.shadowColor = 'rgba(255, 0, 0, 0.8)';
+      ctx.shadowBlur = 15 * ballGlow;
+      
+      ctx.font = '28px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🔴', 0, 0);
+      ctx.restore();
+    }
+
+    // === GAME LOOP ===
+    function gameLoop() {
+      update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Initialize
+    window.onload = function() {
+      backgroundImage.src = 'rialo2.png';
+      backgroundImage.style.display = "block";
+    }
+    
+    gameLoop();
+  </script>
+</body>
+</html>
