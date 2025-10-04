@@ -142,6 +142,35 @@
       cursor: pointer;
       font-size: 14px;
     }
+    /* Controls Info */
+    .controlsInfo {
+      display: none;
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid #2196F3;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .controlsTitle {
+      color: #2196F3;
+      font-weight: bold;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .key {
+      display: inline-block;
+      background: #333;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #666;
+      font-family: monospace;
+      margin: 2px;
+    }
   </style>
 </head>
 <body>
@@ -181,6 +210,14 @@
 
   <!-- Game -->
   <canvas id="pong" width="800" height="500"></canvas>
+  
+  <!-- Controls Info -->
+  <div class="controlsInfo" id="controlsInfo">
+    <div class="controlsTitle">CONTROLS</div>
+    <div>Move UP: <span class="key">W</span></div>
+    <div>Move DOWN: <span class="key">S</span></div>
+  </div>
+
   <button id="exitGameBtn" onclick="playButtonSound(); backToMenu()">Exit Game</button>
 
   <!-- Win Notification -->
@@ -205,6 +242,7 @@
     const backgroundImage = document.getElementById('backgroundImage');
     const winNotification = document.getElementById('winNotification');
     const winTitle = document.getElementById('winTitle');
+    const controlsInfo = document.getElementById('controlsInfo');
 
     let ball, leftPaddle, rightPaddle, leftScore, rightScore;
     let aiLevel = "medium";
@@ -395,6 +433,7 @@
       levelMenu.style.display = "none";
       mainMenu.style.display = "flex";
       winNotification.style.display = "none";
+      controlsInfo.style.display = "none";
       backgroundImage.src = 'rialo2.png';
       backgroundImage.style.display = "block";
       
@@ -476,6 +515,7 @@
       scoreboard.style.display = "block";
       exitBtn.style.display = "inline-block";
       winNotification.style.display = "none";
+      controlsInfo.style.display = "block";
       
       backgroundImage.style.display = "none";
 
